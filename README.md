@@ -5,11 +5,12 @@
 - 航線：台北 TPE ⇄ 奧克蘭 AKL，經濟艙
 - 乘客：2 位成人 + 1 位兒童（2～11 歲）
 - 出發日：2027-02-20 ～ 2027-03-31；停留 14～20 天
-- 若 **三人總價** < NT$100,000 → 寄 Gmail 通知
+- 若 **三人含稅總價** < NT$100,000 → 寄 Gmail 通知
 
-出發日 × 停留天數共約 280 組。每天查其中 1/3（約 95 組、約 45 分鐘），
-3 天內全部查過一輪，才不會超過 private repo 每月 2,000 分鐘的免費 Actions 額度。
-（若把 repo 改成 public，Actions 不限分鐘，可把 `ROTATE` 改成 `1` 每天全查。）
+每組日期會在訂票頁把去程、回程各點選最便宜的經濟艙，再讀取頁首的「Total cost」
+（全家含稅總價）。出發日 × 停留天數共約 280 組，每天全部查一次約 50 分鐘，
+每月約 1,500 分鐘，在 private repo 每月 2,000 分鐘的免費 Actions 額度內。
+（若額度不夠，把 `ROTATE` 設成 `2`，改成 2 天查完一輪。）
 
 ## 設定 Gmail 通知
 
@@ -38,7 +39,7 @@
 
 ### 4. 手動跑一次確認
 repo 頁面 → **Actions** → 左側 **Daily Air NZ fare check** → 右側 **Run workflow** → **Run workflow**。
-跑完（約 45 分鐘）若有低於門檻的票，就會收到主旨為「✈️ 紐航來回機票 3 人 NT$…」的信。
+跑完（約 50 分鐘）若有低於門檻的票，就會收到主旨為「✈️ 紐航來回機票 3 人 NT$…」的信。
 若信件跑到垃圾郵件，請標記「不是垃圾郵件」。
 
 ## 其他說明
@@ -46,7 +47,7 @@ repo 頁面 → **Actions** → 左側 **Daily Air NZ fare check** → 右側 **
 - 同一個價格只通知一次；之後要出現更低的價格才會再寄信。
   （已通知過的最低價記錄在 repo 的 `cheap-fare` issue 中，GitHub 也可能另外寄 issue 通知信。
   關閉該 issue 即可重置，下次符合條件就會重新通知。）
-- 頁面上有「總計」金額時直接用總計；沒有的話以「頁面最低價 × 3 人」保守估算，信中會註明。
+- 想先快速測試，Run workflow 時在 `limit` 填 `3`，只查前 3 組（約 2 分鐘）。
 - 如果整批查詢都抓不到價格（被網站擋或版面改了），workflow 會失敗，GitHub 會寄失敗通知；
   截圖與頁面文字放在該次執行的 artifact `fare-results/debug/` 裡。
 
@@ -62,4 +63,4 @@ repo 頁面 → **Actions** → 左側 **Daily Air NZ fare check** → 右側 **
 | `THRESHOLD_TWD` | 100000 | 全部乘客總價門檻 |
 | `ADULTS` / `CHILDREN` | 2 / 1 | 成人、兒童人數 |
 | `CABIN` | economy | economy / premiumeconomy / business |
-| `ROTATE` | 3 | 幾天查完一輪 |
+| `ROTATE` | 1 | 幾天查完一輪（1 = 每天全查） |

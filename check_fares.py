@@ -27,9 +27,8 @@ ADULTS = int(os.getenv("ADULTS", "2"))
 CHILDREN = int(os.getenv("CHILDREN", "1"))  # 2～11 歲
 CABIN = os.getenv("CABIN", "economy")  # economy / premiumeconomy / business
 BOOKING_HOST = os.getenv("BOOKING_HOST", "https://flightbookings.airnewzealand.com.tw")
-# 出發日×天數共約 280 組，全部每天查會超過 private repo 每月免費的 Actions 分鐘數，
-# 所以每天只查 1/ROTATE 的出發日並輪替，ROTATE 天內會把所有組合查過一輪。
-ROTATE = int(os.getenv("ROTATE", "3"))
+# 每天只查 1/ROTATE 的出發日並輪替（省 Actions 分鐘數用）；1 = 每天全查（約 280 組、50 分鐘）
+ROTATE = int(os.getenv("ROTATE", "1"))
 LIMIT = int(os.getenv("LIMIT") or "0")  # 只查前幾組（診斷用），0 = 不限
 
 RESULTS = Path("results")
