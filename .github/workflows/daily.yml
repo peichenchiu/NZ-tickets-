@@ -5,6 +5,10 @@ on:
     # 每天台灣時間 08:00（UTC 00:00）
     - cron: "0 0 * * *"
   workflow_dispatch:
+    inputs:
+      limit:
+        description: "只查前幾組日期（診斷用，空白=全部）"
+        required: false
 
 permissions:
   contents: read
@@ -22,6 +26,7 @@ jobs:
       - run: pip install -r requirements.txt && python -m playwright install --with-deps chromium
       - name: Check fares
         env:
+          LIMIT: ${{ inputs.limit }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           SMTP_USER: ${{ secrets.SMTP_USER }}

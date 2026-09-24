@@ -32,6 +32,7 @@ BOOKING_HOST = os.getenv("BOOKING_HOST", "https://flightbookings.airnewzealand.c
 # 出發日×天數共約 280 組，全部每天查會超過 private repo 每月免費的 Actions 分鐘數，
 # 所以每天只查 1/ROTATE 的出發日並輪替，ROTATE 天內會把所有組合查過一輪。
 ROTATE = int(os.getenv("ROTATE", "3"))
+LIMIT = int(os.getenv("LIMIT") or "0")  # 只查前幾組（診斷用），0 = 不限
 
 RESULTS = Path("results")
 DEBUG = Path("debug")
@@ -123,6 +124,11 @@ def check_one(page, depart: dt.date, ret: dt.date) -> dict:
         page.screenshot(path=str(DEBUG / f"{tag}.png"), full_page=True)
         (DEBUG / f"{tag}.txt").write_text(text, encoding="utf-8")
         (DEBUG / f"{tag}.json.txt").write_text("\n\n".join(json_bodies), encoding="utf-8")
+        # 也印到 log，方便不下載 artifact 就能看頁面長相
+        print(f"---- page text {tag} ----\n{text[:3000]}\n---- end ----", flush=True)
+        money = sorted({m.group(0) for b in json_bodies
+                        for m in re.finditer(r'"[^"]{0,40}"\s*:\s*"?[\d.,]{4,}"?', b)})
+        print(f"---- json numeric fields {tag} ----\n" + "\n".join(money[:80]), flush=True)
     return result
 
 
@@ -135,6 +141,8 @@ def run_search() -> list[dict]:
             for days in range(TRIP_DAYS_MIN, TRIP_DAYS_MAX + 1):
                 pairs.append((d, d + dt.timedelta(days=days)))
         d += dt.timedelta(days=1)
+    if LIMIT:
+        pairs = pairs[:LIMIT]
 
     results = []
     with sync_playwright() as p:
