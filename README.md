@@ -37,7 +37,10 @@
 
 3. （選用）想寄到別的信箱，再加 `NOTIFY_EMAIL`；沒設定就寄給 `SMTP_USER` 自己。
 
-### 4. 手動跑一次確認
+### 4. 寄測試信確認
+Actions → **Daily Air NZ fare check** → **Run workflow** → 勾選 **只寄一封測試信** → **Run workflow**，約 1 分鐘後應收到「測試信」。
+
+### 5. 手動跑一次確認
 repo 頁面 → **Actions** → 左側 **Daily Air NZ fare check** → 右側 **Run workflow** → **Run workflow**。
 跑完（約 50 分鐘）若有低於門檻的票，就會收到主旨為「✈️ 紐航來回機票 3 人 NT$…」的信。
 若信件跑到垃圾郵件，請標記「不是垃圾郵件」。

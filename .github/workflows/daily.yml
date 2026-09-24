@@ -9,6 +9,10 @@ on:
       limit:
         description: "只查前幾組日期（診斷用，空白=全部）"
         required: false
+      test_email:
+        description: "只寄一封測試信（不查票）"
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -27,6 +31,7 @@ jobs:
       - name: Check fares
         env:
           LIMIT: ${{ inputs.limit }}
+          TEST_EMAIL: ${{ inputs.test_email }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           SMTP_USER: ${{ secrets.SMTP_USER }}

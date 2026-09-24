@@ -234,6 +234,16 @@ def format_line(r: dict) -> str:
 
 
 def main() -> int:
+    if os.getenv("TEST_EMAIL") == "true":
+        # 只寄一封測試信確認 Gmail 設定，不查票；寄失敗會讓 workflow 顯示失敗
+        if not (os.getenv("SMTP_USER") and os.getenv("SMTP_PASSWORD")):
+            print("沒有設定 SMTP_USER / SMTP_PASSWORD", file=sys.stderr)
+            return 1
+        notify_email("✈️ 紐航機票監控：測試信",
+                     "這是測試信。收到代表 Gmail 通知設定成功，"
+                     f"之後三人含稅總價低於 NT${THRESHOLD_TWD:,} 時會寄信給你。")
+        print("測試信已寄出")
+        return 0
     results = run_search()
     RESULTS.mkdir(exist_ok=True)
     (RESULTS / "latest.json").write_text(json.dumps(results, ensure_ascii=False, indent=2),
