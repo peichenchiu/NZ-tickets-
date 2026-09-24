@@ -217,14 +217,31 @@ def notify_telegram(body: str) -> None:
                       json={"chat_id": chat, "text": body[:4000]}, timeout=30)
 
 
-def notify(title: str, body: str) -> None:
-    for fn in (lambda: notify_github(title, body),
-               lambda: notify_email(title, body),
-               lambda: notify_telegram(f"{title}\n\n{body}")):
-        try:
-            fn()
-        except Exception as e:
-            print(f"notify failed: {e}", file=sys.stderr)
+def send_email_safely(subject: str, body: str) -> None:
+    try:
+        notify_email(subject, body)
+    except Exception as e:
+        print(f"email failed: {e}", file=sys.stderr)
+
+
+def daily_subject(today: str, best: int) -> str:
+    flag = "🔔 低於門檻！" if best < THRESHOLD_TWD else ""
+    return f"✈️ 紐航日報 {today}：全家最低 NT${best:,} {flag}".strip()
+
+
+def daily_body(header: str, summary: str, note: str, ok: list[dict]) -> str:
+    by_depart: dict[str, dict] = {}
+    for r in ok:  # ok 已依價格排序，第一筆就是該出發日最便宜的
+        by_depart.setdefault(r["depart"], r)
+    table = []
+    for depart in sorted(by_depart):
+        r = by_depart[depart]
+        days = (dt.date.fromisoformat(r["return"]) - dt.date.fromisoformat(r["depart"])).days
+        table.append(f"{depart}（{days} 天）  NT${r['min_price']:,}")
+    return (f"{header}\n門檻：NT${THRESHOLD_TWD:,}\n{summary}\n\n"
+            "【今日最便宜 10 組】\n" + "\n".join(format_line(r) for r in ok[:10])
+            + "\n\n【每個出發日的最低價】\n" + "\n".join(table)
+            + f"\n\n{note}")
 
 
 def format_line(r: dict) -> str:
@@ -241,7 +258,7 @@ def main() -> int:
             return 1
         notify_email("✈️ 紐航機票監控：測試信",
                      "這是測試信。收到代表 Gmail 通知設定成功，"
-                     f"之後三人含稅總價低於 NT${THRESHOLD_TWD:,} 時會寄信給你。")
+                     "之後每天早上會寄一封當日最低價日報給你。")
         print("測試信已寄出")
         return 0
     results = run_search()
@@ -249,32 +266,41 @@ def main() -> int:
     (RESULTS / "latest.json").write_text(json.dumps(results, ensure_ascii=False, indent=2),
                                          encoding="utf-8")
 
-    ok = [r for r in results if r["status"] == "ok"]
-    cheap = sorted((r for r in ok if r["min_price"] < THRESHOLD_TWD), key=lambda r: r["min_price"])
+    ok = sorted((r for r in results if r["status"] == "ok"), key=lambda r: r["min_price"])
+    cheap = [r for r in ok if r["min_price"] < THRESHOLD_TWD]
     summary = (f"查詢 {len(results)} 組日期，成功取得價格 {len(ok)} 組，"
                f"低於 NT${THRESHOLD_TWD:,} 的有 {len(cheap)} 組。")
     print(summary)
+    today = dt.date.today().strftime("%m/%d")
+    header = (f"紐西蘭航空 {ORIGIN}⇄{DEST} {TRIP_DAYS_MIN}～{TRIP_DAYS_MAX} 天來回"
+              f"（{CABIN}，{ADULTS} 成人 + {CHILDREN} 兒童）")
+    note = "價格為去程、回程各選最便宜經濟艙後，訂票頁顯示的全家含稅總價（Total cost），實際以訂票頁為準。"
 
     if not ok:
         # 全部失敗多半是網站擋爬蟲或版面改了，要讓使用者知道，而不是默默沒通知
         print("沒有抓到任何價格，請查看 artifact 中的 debug 截圖。", file=sys.stderr)
+        send_email_safely(f"⚠️ 紐航日報 {today}：今天查詢失敗",
+                          f"{header}\n\n{summary}\n網站可能擋了自動查詢或改版，請查看 GitHub Actions 紀錄。")
         return 1
 
+    send_email_safely(daily_subject(today, ok[0]["min_price"]), daily_body(header, summary, note, ok))
+
+    # 低於門檻時另外開 GitHub issue／Telegram 通知（同價格不重複）
     if cheap:
         best = cheap[0]["min_price"]
         prev = previous_best()
         if prev is not None and best >= prev:
             print(f"最低價 NT${best:,} 未低於已通知過的 NT${prev:,}，不重複通知。")
             return 0
-        lines = [format_line(r) for r in cheap[:20]]
-        body = (f"紐西蘭航空 {ORIGIN}⇄{DEST} {TRIP_DAYS_MIN}～{TRIP_DAYS_MAX} 天來回"
-                f"（{CABIN}，{ADULTS} 成人 + {CHILDREN} 兒童）\n\n"
-                + "\n".join(lines)
-                + f"\n\n{summary}\n價格為去程、回程各選最便宜經濟艙後，訂票頁顯示的全家含稅總價（Total cost），實際以訂票頁為準。"
-                + f"\n<!-- best:{best} -->")
-        notify(f"✈️ 紐航來回機票 {ADULTS + CHILDREN} 人 NT${best:,}（低於 NT${THRESHOLD_TWD:,}）", body)
+        body = (f"{header}\n\n" + "\n".join(format_line(r) for r in cheap[:20])
+                + f"\n\n{summary}\n{note}\n<!-- best:{best} -->")
+        title = f"✈️ 紐航來回機票 {ADULTS + CHILDREN} 人 NT${best:,}（低於 NT${THRESHOLD_TWD:,}）"
+        for fn in (lambda: notify_github(title, body), lambda: notify_telegram(f"{title}\n\n{body}")):
+            try:
+                fn()
+            except Exception as e:
+                print(f"notify failed: {e}", file=sys.stderr)
     return 0
-
 
 if __name__ == "__main__":
     sys.exit(main())
