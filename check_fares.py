@@ -1,4 +1,4 @@
-"""每日檢查紐西蘭航空 14 天來回機票，低於門檻就通知。
+"""每日檢查紐西蘭航空 14～20 天來回機票（全家總價），低於門檻就通知。
 
 設定都可以用環境變數覆寫（見 README）。
 """
@@ -20,14 +20,18 @@ ORIGIN = os.getenv("ORIGIN", "TPE")
 DEST = os.getenv("DEST", "AKL")
 DEPART_START = dt.date.fromisoformat(os.getenv("DEPART_START", "2027-02-20"))
 DEPART_END = dt.date.fromisoformat(os.getenv("DEPART_END", "2027-03-31"))
-TRIP_DAYS = int(os.getenv("TRIP_DAYS", "14"))
-THRESHOLD_TWD = int(os.getenv("THRESHOLD_TWD", "100000"))
-ADULTS = int(os.getenv("ADULTS", "1"))
+TRIP_DAYS_MIN = int(os.getenv("TRIP_DAYS_MIN", "14"))
+TRIP_DAYS_MAX = int(os.getenv("TRIP_DAYS_MAX", "20"))
+THRESHOLD_TWD = int(os.getenv("THRESHOLD_TWD", "100000"))  # 全部乘客的總價
+ADULTS = int(os.getenv("ADULTS", "2"))
+CHILDREN = int(os.getenv("CHILDREN", "1"))  # 2～11 歲
 CABIN = os.getenv("CABIN", "economy")  # economy / premiumeconomy / business
 # 低於這個金額視為稅金、加購等雜項，不是整張票價
 MIN_PLAUSIBLE_TWD = int(os.getenv("MIN_PLAUSIBLE_TWD", "10000"))
 BOOKING_HOST = os.getenv("BOOKING_HOST", "https://flightbookings.airnewzealand.com.tw")
-DATE_STEP = int(os.getenv("DATE_STEP", "1"))  # 每隔幾天查一次出發日
+# 出發日×天數共約 280 組，全部每天查會超過 private repo 每月免費的 Actions 分鐘數，
+# 所以每天只查 1/ROTATE 的出發日並輪替，ROTATE 天內會把所有組合查過一輪。
+ROTATE = int(os.getenv("ROTATE", "3"))
 
 RESULTS = Path("results")
 DEBUG = Path("debug")
@@ -37,6 +41,8 @@ ISSUE_LABEL = "cheap-fare"
 PRICE_RE = re.compile(
     r"(?:NT\$|TWD|NTD)\s*([\d,]{4,})(?:\.\d+)?|([\d,]{4,})(?:\.\d+)?\s*(?:TWD|NTD|元)"
 )
+# 「總計 NT$ 123,456」這類標示全體乘客總價的字樣
+TOTAL_RE = re.compile(r"總計|總價|總金額|合計|總額|Total", re.I)
 
 
 def search_url(depart: dt.date, ret: dt.date) -> str:
@@ -51,6 +57,7 @@ def search_url(depart: dt.date, ret: dt.date) -> str:
         "searchLegs[1].tripStartDate": ret.day,
         "tripType": "return",
         "adults": ADULTS,
+        "children": CHILDREN,
         "bookingClass": CABIN,
     }
     return f"{BOOKING_HOST}/vbook/actions/ext-search?{urlencode(params)}"
@@ -63,6 +70,11 @@ def extract_prices(text: str) -> list[int]:
         if MIN_PLAUSIBLE_TWD <= value <= 2_000_000:
             prices.append(value)
     return prices
+
+
+def extract_total_prices(text: str) -> list[int]:
+    """只取緊接在「總計／Total」後面的金額。"""
+    return [p for m in TOTAL_RE.finditer(text) for p in extract_prices(text[m.end():m.end() + 40])[:1]]
 
 
 def check_one(page, depart: dt.date, ret: dt.date) -> dict:
@@ -95,8 +107,14 @@ def check_one(page, depart: dt.date, ret: dt.date) -> dict:
 
     prices = extract_prices(text) + [p for b in json_bodies for p in extract_prices(b)]
     tag = f"{depart.isoformat()}_{ret.isoformat()}"
-    if prices:
-        result.update(status="ok", min_price=min(prices))
+    totals = extract_total_prices(text)
+    if totals:
+        result.update(status="ok", min_price=min(totals), price_kind="total")
+    elif prices:
+        # 頁面沒有「總計」字樣時，最低價可能只是每人價格；保守起見乘上人數估算總價，
+        # 避免把每人 3 萬誤判成全家低於 10 萬
+        result.update(status="ok", min_price=min(prices) * (ADULTS + CHILDREN),
+                      price_kind="estimated", shown_price=min(prices))
     else:
         blocked = re.search(r"access denied|blocked|captcha|robot", title + text[:2000], re.I)
         result.update(status="blocked" if blocked else "no_price", title=title)
@@ -109,11 +127,14 @@ def check_one(page, depart: dt.date, ret: dt.date) -> dict:
 
 
 def run_search() -> list[dict]:
+    offset = dt.date.today().toordinal() % ROTATE
     pairs = []
     d = DEPART_START
     while d <= DEPART_END:
-        pairs.append((d, d + dt.timedelta(days=TRIP_DAYS)))
-        d += dt.timedelta(days=DATE_STEP)
+        if d.toordinal() % ROTATE == offset:
+            for days in range(TRIP_DAYS_MIN, TRIP_DAYS_MAX + 1):
+                pairs.append((d, d + dt.timedelta(days=days)))
+        d += dt.timedelta(days=1)
 
     results = []
     with sync_playwright() as p:
@@ -132,7 +153,7 @@ def run_search() -> list[dict]:
             r = check_one(page, depart, ret)
             print(json.dumps(r, ensure_ascii=False), flush=True)
             results.append(r)
-            time.sleep(8)  # 放慢速度，避免被當成機器人
+            time.sleep(5)  # 放慢速度，避免被當成機器人
         browser.close()
     return results
 
@@ -177,7 +198,8 @@ def previous_best() -> int | None:
 
 
 def notify_email(subject: str, body: str) -> None:
-    user, pw, to = os.getenv("SMTP_USER"), os.getenv("SMTP_PASSWORD"), os.getenv("NOTIFY_EMAIL")
+    user, pw = os.getenv("SMTP_USER"), os.getenv("SMTP_PASSWORD")
+    to = os.getenv("NOTIFY_EMAIL") or user  # 沒設定收件人就寄給自己
     if not (user and pw and to):
         return
     msg = MIMEText(body, "plain", "utf-8")
@@ -204,6 +226,14 @@ def notify(title: str, body: str) -> None:
             print(f"notify failed: {e}", file=sys.stderr)
 
 
+def format_line(r: dict) -> str:
+    days = (dt.date.fromisoformat(r["return"]) - dt.date.fromisoformat(r["depart"])).days
+    note = ""
+    if r.get("price_kind") != "total":
+        note = f"（估算：頁面最低價 NT${r['shown_price']:,} × {ADULTS + CHILDREN} 人）"
+    return f"- 去 {r['depart']} / 回 {r['return']}（{days} 天）：NT${r['min_price']:,}{note}\n  {r['url']}"
+
+
 def main() -> int:
     results = run_search()
     RESULTS.mkdir(exist_ok=True)
@@ -227,13 +257,13 @@ def main() -> int:
         if prev is not None and best >= prev:
             print(f"最低價 NT${best:,} 未低於已通知過的 NT${prev:,}，不重複通知。")
             return 0
-        lines = [f"- 去 {r['depart']} / 回 {r['return']}：**NT${r['min_price']:,}** "
-                 f"（[訂票頁]({r['url']})）" for r in cheap[:20]]
-        body = (f"紐西蘭航空 {ORIGIN}⇄{DEST} {TRIP_DAYS} 天來回（{CABIN}，{ADULTS} 位成人）\n\n"
+        lines = [format_line(r) for r in cheap[:20]]
+        body = (f"紐西蘭航空 {ORIGIN}⇄{DEST} {TRIP_DAYS_MIN}～{TRIP_DAYS_MAX} 天來回"
+                f"（{CABIN}，{ADULTS} 成人 + {CHILDREN} 兒童）\n\n"
                 + "\n".join(lines)
-                + f"\n\n{summary}\n價格為爬取當下頁面上的最低顯示價，請點連結確認。"
+                + f"\n\n{summary}\n價格為爬取當下的頁面價格，實際以訂票頁為準，請點連結確認。"
                 + f"\n<!-- best:{best} -->")
-        notify(f"✈️ 紐航來回機票 NT${best:,}（低於 NT${THRESHOLD_TWD:,}）", body)
+        notify(f"✈️ 紐航來回機票 {ADULTS + CHILDREN} 人 NT${best:,}（低於 NT${THRESHOLD_TWD:,}）", body)
     return 0
 
 
