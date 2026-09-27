@@ -1,17 +1,19 @@
 # 紐航機票每日監控
 
-每天台灣時間 08:00 由 GitHub Actions 到紐西蘭航空台灣訂票網站（flightbookings.airnewzealand.com.tw）查詢：
+每天台灣時間 06:00、18:00 左右由 GitHub Actions 到紐西蘭航空台灣訂票網站（flightbookings.airnewzealand.com.tw）查詢：
 
 - 航線：台北 TPE ⇄ 奧克蘭 AKL，經濟艙
 - 乘客：2 位成人 + 1 位兒童（2～11 歲）
 - 出發日：2027-02-20 ～ 2027-03-31；停留 14～20 天
-- 每天寄一封 Gmail **日報**：今日最便宜 10 組、每個出發日的最低價
+- 每天早晚各寄一封 Gmail **報告**：今日最便宜 10 組、每個出發日的最低價
 - 若 **三人含稅總價** < NT$100,000，日報主旨會加上「🔔 低於門檻！」
 
 每組日期會在訂票頁把去程、回程各點選最便宜的經濟艙，再讀取頁首的「Total cost」
-（全家含稅總價）。出發日 × 停留天數共約 280 組，每天全部查一次約 50 分鐘，
-每月約 1,500 分鐘，在 private repo 每月 2,000 分鐘的免費 Actions 額度內。
-（若額度不夠，把 `ROTATE` 設成 `2`，改成 2 天查完一輪。）
+（全家含稅總價）。出發日 × 停留天數共約 280 組，同時開 4 個分頁查，每次約 15 分鐘；
+一天兩次、每月約 1,000 分鐘，在 private repo 每月 2,000 分鐘的免費 Actions 額度內。
+
+排程在 05:15、17:15 開始（GitHub 排程常會晚 10～20 分鐘），信件約在 06:00、18:00 寄達，
+偶爾可能早幾分鐘或晚一點。
 
 ## 設定 Gmail 通知
 
@@ -43,12 +45,12 @@ Actions → **Daily Air NZ fare check** → **Run workflow** → 勾選 **只寄
 
 ### 5. 手動跑一次確認
 repo 頁面 → **Actions** → 左側 **Daily Air NZ fare check** → 右側 **Run workflow** → **Run workflow**。
-跑完（約 50 分鐘）會收到主旨為「✈️ 紐航日報 MM/DD：全家最低 NT$…」的信。
+跑完（約 15 分鐘）會收到主旨為「✈️ 紐航日報 MM/DD：全家最低 NT$…」的信。
 若信件跑到垃圾郵件，請標記「不是垃圾郵件」。
 
 ## 其他說明
 
-- 日報每天都寄；查詢全部失敗時會寄「⚠️ 今天查詢失敗」。
+- 報告每次都寄；查詢全部失敗時會寄「⚠️ 今天查詢失敗」。
 - 低於門檻時另外在 repo 開 `cheap-fare` issue（同一價格只開一次，之後出現更低價才會再留言）。
 - 想先快速測試，Run workflow 時在 `limit` 填 `3`，只查前 3 組（約 2 分鐘）。
 - 如果整批查詢都抓不到價格（被網站擋或版面改了），workflow 會失敗，GitHub 會寄失敗通知；
@@ -66,4 +68,5 @@ repo 頁面 → **Actions** → 左側 **Daily Air NZ fare check** → 右側 **
 | `THRESHOLD_TWD` | 100000 | 全部乘客總價門檻 |
 | `ADULTS` / `CHILDREN` | 2 / 1 | 成人、兒童人數 |
 | `CABIN` | economy | economy / premiumeconomy / business |
-| `ROTATE` | 1 | 幾天查完一輪（1 = 每天全查） |
+| `ROTATE` | 1 | 幾次查完一輪（1 = 每次全查） |
+| `WORKERS` | 4 | 同時查幾組 |

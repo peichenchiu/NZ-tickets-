@@ -2,8 +2,10 @@ name: Daily Air NZ fare check
 
 on:
   schedule:
-    # 每天台灣時間 08:00（UTC 00:00）
-    - cron: "0 0 * * *"
+    # 台灣時間 05:15、17:15 開始（GitHub 排程常晚 10～20 分鐘，查詢約 15 分鐘），
+    # 信件約在 06:00、18:00 寄達。cron 用 UTC：台灣 = UTC+8
+    - cron: "15 21 * * *"
+    - cron: "15 9 * * *"
   workflow_dispatch:
     inputs:
       limit:
@@ -21,7 +23,7 @@ permissions:
 jobs:
   check:
     runs-on: ubuntu-latest
-    timeout-minutes: 150
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

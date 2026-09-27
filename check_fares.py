@@ -2,19 +2,20 @@
 
 設定都可以用環境變數覆寫（見 README）。
 """
+import asyncio
 import datetime as dt
 import json
 import os
 import re
 import smtplib
 import sys
-import time
 from email.mime.text import MIMEText
 from pathlib import Path
 from urllib.parse import urlencode
+from zoneinfo import ZoneInfo
 
 import requests
-from playwright.sync_api import sync_playwright
+from playwright.async_api import async_playwright
 
 ORIGIN = os.getenv("ORIGIN", "TPE")
 DEST = os.getenv("DEST", "AKL")
@@ -27,8 +28,9 @@ ADULTS = int(os.getenv("ADULTS", "2"))
 CHILDREN = int(os.getenv("CHILDREN", "1"))  # 2～11 歲
 CABIN = os.getenv("CABIN", "economy")  # economy / premiumeconomy / business
 BOOKING_HOST = os.getenv("BOOKING_HOST", "https://flightbookings.airnewzealand.com.tw")
-# 每天只查 1/ROTATE 的出發日並輪替（省 Actions 分鐘數用）；1 = 每天全查（約 280 組、50 分鐘）
+# 每次只查 1/ROTATE 的出發日並輪替（省 Actions 分鐘數用）；1 = 每次全查（約 280 組）
 ROTATE = int(os.getenv("ROTATE", "1"))
+WORKERS = int(os.getenv("WORKERS", "4"))  # 同時查幾組
 LIMIT = int(os.getenv("LIMIT") or "0")  # 只查前幾組（診斷用），0 = 不限
 
 RESULTS = Path("results")
@@ -70,51 +72,51 @@ def search_url(depart: dt.date, ret: dt.date) -> str:
     return f"{BOOKING_HOST}/vbook/actions/ext-search?{urlencode(params)}"
 
 
-def read_total(page) -> int | None:
-    m = TOTAL_RE.search(page.inner_text("body"))
+async def read_total(page) -> int | None:
+    m = TOTAL_RE.search(await page.inner_text("body"))
     return int(m.group(1).replace(",", "")) if m else None
 
 
-def wait_total_change(page, before: int | None) -> int | None:
+async def wait_total_change(page, before: int | None) -> int | None:
     for _ in range(30):
-        page.wait_for_timeout(500)
-        now = read_total(page)
+        await page.wait_for_timeout(500)
+        now = await read_total(page)
         if now and now != before:
             return now
-    return read_total(page)
+    return await read_total(page)
 
 
-def check_one(page, depart: dt.date, ret: dt.date) -> dict:
+async def check_one(page, depart: dt.date, ret: dt.date) -> dict:
     """點選去程、回程各自最便宜的經濟艙票價，讀取頁首的全家含稅總價。"""
     url = search_url(depart, ret)
     result = {"depart": depart.isoformat(), "return": ret.isoformat(), "url": url}
     tag = f"{depart.isoformat()}_{ret.isoformat()}"
     try:
-        page.goto(url, wait_until="domcontentloaded", timeout=90_000)
+        await page.goto(url, wait_until="domcontentloaded", timeout=90_000)
         try:
-            page.wait_for_selector(FARE_CELL, timeout=60_000)
+            await page.wait_for_selector(FARE_CELL, timeout=60_000)
         except Exception:
             pass
-        cells = page.evaluate(MARK_CELLS_JS, FARE_CELL)
+        cells = await page.evaluate(MARK_CELLS_JS, FARE_CELL)
         legs = {leg: [c for c in cells if c["leg"] == leg and c["price"]] for leg in (0, 1)}
         if not legs[0] or not legs[1]:
-            text = page.inner_text("body")
-            blocked = re.search(r"access denied|blocked|captcha|robot", page.title() + text[:2000], re.I)
+            title, text = await page.title(), await page.inner_text("body")
+            blocked = re.search(r"access denied|blocked|captcha|robot", title + text[:2000], re.I)
             no_flights = re.search(r"no flights|not available|沒有航班", text, re.I)
             result.update(status="blocked" if blocked else "no_flights" if no_flights else "no_price",
-                          title=page.title(), cells=len(cells))
+                          title=title, cells=len(cells))
             DEBUG.mkdir(exist_ok=True)
-            page.screenshot(path=str(DEBUG / f"{tag}.png"), full_page=True)
+            await page.screenshot(path=str(DEBUG / f"{tag}.png"), full_page=True)
             (DEBUG / f"{tag}.txt").write_text(text, encoding="utf-8")
             return result
 
-        total = read_total(page)
+        total = await read_total(page)
         chosen = []
         for leg in (0, 1):
             cheapest = min(legs[leg], key=lambda c: c["price"])
             chosen.append(cheapest["price"])
-            page.locator(f'[data-nz-idx="{cheapest["idx"]}"]').click()
-            total = wait_total_change(page, total)
+            await page.locator(f'[data-nz-idx="{cheapest["idx"]}"]').click()
+            total = await wait_total_change(page, total)
         if not total:
             raise RuntimeError("讀不到 Total cost")
         result.update(status="ok", min_price=total,
@@ -123,6 +125,38 @@ def check_one(page, depart: dt.date, ret: dt.date) -> dict:
         result.update(status="error", error=str(e)[:300])
     return result
 
+
+async def search_all(pairs: list[tuple[dt.date, dt.date]]) -> list[dict]:
+    queue: asyncio.Queue = asyncio.Queue()
+    for pair in pairs:
+        queue.put_nowait(pair)
+    results = []
+
+    async def worker(browser):
+        # 每個 worker 用獨立的 context（cookie），避免訂票頁的選位狀態互相干擾
+        ctx = await browser.new_context(
+            locale="zh-TW",
+            timezone_id="Asia/Taipei",
+            viewport={"width": 1366, "height": 900},
+            user_agent=(
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                "(KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36"
+            ),
+        )
+        page = await ctx.new_page()
+        while not queue.empty():
+            depart, ret = queue.get_nowait()
+            r = await check_one(page, depart, ret)
+            print(json.dumps(r, ensure_ascii=False), flush=True)
+            results.append(r)
+            await asyncio.sleep(3)  # 放慢速度，避免被當成機器人
+        await ctx.close()
+
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(headless=True)
+        await asyncio.gather(*(worker(browser) for _ in range(WORKERS)))
+        await browser.close()
+    return results
 
 
 def run_search() -> list[dict]:
@@ -136,27 +170,7 @@ def run_search() -> list[dict]:
         d += dt.timedelta(days=1)
     if LIMIT:
         pairs = pairs[:LIMIT]
-
-    results = []
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
-        ctx = browser.new_context(
-            locale="zh-TW",
-            timezone_id="Asia/Taipei",
-            viewport={"width": 1366, "height": 900},
-            user_agent=(
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-                "(KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36"
-            ),
-        )
-        page = ctx.new_page()
-        for depart, ret in pairs:
-            r = check_one(page, depart, ret)
-            print(json.dumps(r, ensure_ascii=False), flush=True)
-            results.append(r)
-            time.sleep(5)  # 放慢速度，避免被當成機器人
-        browser.close()
-    return results
+    return asyncio.run(search_all(pairs))
 
 
 # ---------- 通知 ----------
@@ -226,7 +240,7 @@ def send_email_safely(subject: str, body: str) -> None:
 
 def daily_subject(today: str, best: int) -> str:
     flag = "🔔 低於門檻！" if best < THRESHOLD_TWD else ""
-    return f"✈️ 紐航日報 {today}：全家最低 NT${best:,} {flag}".strip()
+    return f"✈️ 紐航 {today}：全家最低 NT${best:,} {flag}".strip()
 
 
 def daily_body(header: str, summary: str, note: str, ok: list[dict]) -> str:
@@ -258,7 +272,7 @@ def main() -> int:
             return 1
         notify_email("✈️ 紐航機票監控：測試信",
                      "這是測試信。收到代表 Gmail 通知設定成功，"
-                     "之後每天早上會寄一封當日最低價日報給你。")
+                     "之後每天 06:00、18:00 左右會寄最低價報告給你。")
         print("測試信已寄出")
         return 0
     results = run_search()
@@ -271,7 +285,8 @@ def main() -> int:
     summary = (f"查詢 {len(results)} 組日期，成功取得價格 {len(ok)} 組，"
                f"低於 NT${THRESHOLD_TWD:,} 的有 {len(cheap)} 組。")
     print(summary)
-    today = dt.date.today().strftime("%m/%d")
+    now = dt.datetime.now(ZoneInfo("Asia/Taipei"))  # runner 是 UTC，日期要用台灣時間
+    today = now.strftime("%m/%d ") + ("早報" if now.hour < 12 else "晚報")
     header = (f"紐西蘭航空 {ORIGIN}⇄{DEST} {TRIP_DAYS_MIN}～{TRIP_DAYS_MAX} 天來回"
               f"（{CABIN}，{ADULTS} 成人 + {CHILDREN} 兒童）")
     note = "價格為去程、回程各選最便宜經濟艙後，訂票頁顯示的全家含稅總價（Total cost），實際以訂票頁為準。"
@@ -279,7 +294,7 @@ def main() -> int:
     if not ok:
         # 全部失敗多半是網站擋爬蟲或版面改了，要讓使用者知道，而不是默默沒通知
         print("沒有抓到任何價格，請查看 artifact 中的 debug 截圖。", file=sys.stderr)
-        send_email_safely(f"⚠️ 紐航日報 {today}：今天查詢失敗",
+        send_email_safely(f"⚠️ 紐航 {today}：查詢失敗",
                           f"{header}\n\n{summary}\n網站可能擋了自動查詢或改版，請查看 GitHub Actions 紀錄。")
         return 1
 
