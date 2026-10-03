@@ -115,10 +115,19 @@ async def check_one(page, depart: dt.date, ret: dt.date) -> dict:
         for leg in (0, 1):
             cheapest = min(legs[leg], key=lambda c: c["price"])
             chosen.append(cheapest["price"])
-            await page.locator(f'[data-nz-idx="{cheapest["idx"]}"]').click()
-            total = await wait_total_change(page, total)
-        if not total:
-            raise RuntimeError("讀不到 Total cost")
+            cell = page.locator(f'[data-nz-idx="{cheapest["idx"]}"]')
+            before = total
+            # 點了總價沒變＝這段沒選到（曾因此把「只有去程」的總價誤報成來回價），重點一次再不行就放棄
+            for _ in range(2):
+                await cell.click()
+                total = await wait_total_change(page, before)
+                if total and total != before:
+                    break
+            else:
+                raise RuntimeError(f"{'去程' if leg == 0 else '回程'}票價點選後總價沒有更新")
+        # 全家總價至少是成人人數 × 來回票價（還沒算兒童與稅），低於這個一定是沒選齊
+        if total < ADULTS * (chosen[0] + chosen[1]):
+            raise RuntimeError(f"總價 {total} 低於合理下限，可能只選到單程")
         result.update(status="ok", min_price=total,
                       out_fare=chosen[0], ret_fare=chosen[1])
     except Exception as e:
