@@ -110,10 +110,13 @@ async def check_one(page, depart: dt.date, ret: dt.date) -> dict:
         if not legs[0] or not legs[1]:
             title, text = await page.title(), await page.inner_text("body")
             blocked = re.search(r"access denied|blocked|captcha|robot", title + text[:2000], re.I)
-            no_flights = re.search(r"no flights|not available|沒有航班", text, re.I)
+            # 有票價格子、只是沒有轉機次數符合的航班 → 當天沒有可行班次，不是錯誤
+            no_flights = cells or re.search(r"no flights|not available|沒有航班", text, re.I)
             result.update(status="blocked" if blocked else "no_flights" if no_flights else "no_price",
                           title=title, cells=len(cells),
                           flights_seen=sorted({c["flights"] for c in cells if c["flights"]}))
+            if result["status"] == "no_flights":
+                return result
             DEBUG.mkdir(exist_ok=True)
             await page.screenshot(path=str(DEBUG / f"{tag}.png"), full_page=True)
             (DEBUG / f"{tag}.txt").write_text(text, encoding="utf-8")
@@ -302,13 +305,15 @@ def main() -> int:
 
     ok = sorted((r for r in results if r["status"] == "ok"), key=lambda r: r["min_price"])
     cheap = [r for r in ok if r["min_price"] < THRESHOLD_TWD]
+    no_flights = sum(r["status"] == "no_flights" for r in results)
     summary = (f"查詢 {len(results)} 組日期，成功取得價格 {len(ok)} 組，"
+               f"當天沒有轉機 {MAX_FLIGHTS - 1} 次以內航班 {no_flights} 組，"
                f"低於 NT${THRESHOLD_TWD:,} 的有 {len(cheap)} 組。")
     print(summary)
     now = dt.datetime.now(ZoneInfo("Asia/Taipei"))  # runner 是 UTC，日期要用台灣時間
     today = now.strftime("%m/%d ") + ("早報" if now.hour < 12 else "晚報")
     header = (f"紐西蘭航空 {ORIGIN}⇄{DEST} {TRIP_DAYS_MIN}～{TRIP_DAYS_MAX} 天來回"
-              f"（{CABIN}，{ADULTS} 成人 + {CHILDREN} 兒童）")
+              f"（{CABIN}，{ADULTS} 成人 + {CHILDREN} 兒童，每段最多轉機 {MAX_FLIGHTS - 1} 次）")
     note = "價格為去程、回程各選最便宜經濟艙後，訂票頁顯示的全家含稅總價（Total cost），實際以訂票頁為準。"
 
     if not ok:
