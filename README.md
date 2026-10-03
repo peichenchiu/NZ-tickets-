@@ -2,7 +2,7 @@
 
 每天台灣時間 06:00、18:00 左右由 GitHub Actions 到紐西蘭航空台灣訂票網站（flightbookings.airnewzealand.com.tw）查詢：
 
-- 航線：台北 TPE ⇄ 奧克蘭 AKL，經濟艙
+- 航線：台北 TPE ⇄ 皇后鎮 ZQN，經濟艙，每段最多轉機一次（例：TPE→AKL→ZQN）
 - 乘客：2 位成人 + 1 位兒童（2～11 歲）
 - 出發日：2027-02-20 ～ 2027-03-31；停留 14～20 天
 - 每天早晚各寄一封 Gmail **報告**：今日最便宜 10 組、每個出發日的最低價
@@ -62,7 +62,8 @@ repo 頁面 → **Actions** → 左側 **Daily Air NZ fare check** → 右側 **
 
 | 變數 | 預設 | 說明 |
 |---|---|---|
-| `ORIGIN` / `DEST` | TPE / AKL | 機場代碼 |
+| `ORIGIN` / `DEST` | TPE / ZQN | 機場代碼（手動執行時可用 `dest` 輸入暫時改） |
+| `MAX_FLIGHTS` | 2 | 每段最多搭幾班（2 = 最多轉機一次） |
 | `DEPART_START` / `DEPART_END` | 2027-02-20 / 2027-03-31 | 出發日範圍 |
 | `TRIP_DAYS_MIN` / `TRIP_DAYS_MAX` | 14 / 20 | 停留天數範圍 |
 | `THRESHOLD_TWD` | 100000 | 全部乘客總價門檻 |

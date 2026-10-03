@@ -18,9 +18,11 @@ import requests
 from playwright.async_api import async_playwright
 
 ORIGIN = os.getenv("ORIGIN", "TPE")
-DEST = os.getenv("DEST", "AKL")
+DEST = os.getenv("DEST") or "ZQN"  # 皇后鎮
 DEPART_START = dt.date.fromisoformat(os.getenv("DEPART_START", "2027-02-20"))
 DEPART_END = dt.date.fromisoformat(os.getenv("DEPART_END", "2027-03-31"))
+# 每段最多搭幾班飛機：2 = 最多轉機一次（例：台北→奧克蘭→皇后鎮）
+MAX_FLIGHTS = int(os.getenv("MAX_FLIGHTS") or "2")
 TRIP_DAYS_MIN = int(os.getenv("TRIP_DAYS_MIN", "14"))
 TRIP_DAYS_MAX = int(os.getenv("TRIP_DAYS_MAX", "20"))
 THRESHOLD_TWD = int(os.getenv("THRESHOLD_TWD", "100000"))  # 全部乘客的總價
@@ -48,8 +50,12 @@ MARK_CELLS_JS = """sel => {
   return [...document.querySelectorAll(sel)].map((e, i) => {
     const leg = ret && (ret.compareDocumentPosition(e) & Node.DOCUMENT_POSITION_FOLLOWING) ? 1 : 0;
     const m = e.innerText.match(/\\$\\s*([\\d,]+)/);
+    // 往上找到該航班列（文字含「N flight(s)」的最近祖先），取得這段共搭幾班飛機
+    let row = e, f = null;
+    while (row && !(f = row.innerText.match(/(\\d+) flights?\\b/))) row = row.parentElement;
     e.setAttribute('data-nz-idx', i);
-    return {idx: i, leg, price: m ? parseInt(m[1].replace(/,/g, '')) : null};
+    return {idx: i, leg, price: m ? parseInt(m[1].replace(/,/g, '')) : null,
+            flights: f ? parseInt(f[1]) : null};
   });
 }"""
 
@@ -98,23 +104,27 @@ async def check_one(page, depart: dt.date, ret: dt.date) -> dict:
         except Exception:
             pass
         cells = await page.evaluate(MARK_CELLS_JS, FARE_CELL)
-        legs = {leg: [c for c in cells if c["leg"] == leg and c["price"]] for leg in (0, 1)}
+        legs = {leg: [c for c in cells if c["leg"] == leg and c["price"]
+                      and c["flights"] is not None and c["flights"] <= MAX_FLIGHTS]
+                for leg in (0, 1)}
         if not legs[0] or not legs[1]:
             title, text = await page.title(), await page.inner_text("body")
             blocked = re.search(r"access denied|blocked|captcha|robot", title + text[:2000], re.I)
             no_flights = re.search(r"no flights|not available|沒有航班", text, re.I)
             result.update(status="blocked" if blocked else "no_flights" if no_flights else "no_price",
-                          title=title, cells=len(cells))
+                          title=title, cells=len(cells),
+                          flights_seen=sorted({c["flights"] for c in cells if c["flights"]}))
             DEBUG.mkdir(exist_ok=True)
             await page.screenshot(path=str(DEBUG / f"{tag}.png"), full_page=True)
             (DEBUG / f"{tag}.txt").write_text(text, encoding="utf-8")
             return result
 
         total = await read_total(page)
-        chosen = []
+        chosen, picked = [], []
         for leg in (0, 1):
             cheapest = min(legs[leg], key=lambda c: c["price"])
             chosen.append(cheapest["price"])
+            picked.append(cheapest["flights"])
             cell = page.locator(f'[data-nz-idx="{cheapest["idx"]}"]')
             before = total
             # 點了總價沒變＝這段沒選到（曾因此把「只有去程」的總價誤報成來回價），重點一次再不行就放棄
@@ -129,7 +139,8 @@ async def check_one(page, depart: dt.date, ret: dt.date) -> dict:
         if total < ADULTS * (chosen[0] + chosen[1]):
             raise RuntimeError(f"總價 {total} 低於合理下限，可能只選到單程")
         result.update(status="ok", min_price=total,
-                      out_fare=chosen[0], ret_fare=chosen[1])
+                      out_fare=chosen[0], ret_fare=chosen[1],
+                      out_flights=picked[0], ret_flights=picked[1])
     except Exception as e:
         result.update(status="error", error=str(e)[:300])
     return result

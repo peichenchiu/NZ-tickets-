@@ -11,6 +11,9 @@ on:
       limit:
         description: "只查前幾組日期（診斷用，空白=全部）"
         required: false
+      dest:
+        description: "目的地機場代碼（空白=ZQN 皇后鎮）"
+        required: false
       test_email:
         description: "只寄一封測試信（不查票）"
         type: boolean
@@ -33,6 +36,7 @@ jobs:
       - name: Check fares
         env:
           LIMIT: ${{ inputs.limit }}
+          DEST: ${{ inputs.dest }}
           TEST_EMAIL: ${{ inputs.test_email }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
