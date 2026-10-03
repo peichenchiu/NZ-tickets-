@@ -19,7 +19,7 @@ from playwright.async_api import async_playwright
 
 ORIGIN = os.getenv("ORIGIN", "TPE")
 DEST = os.getenv("DEST") or "ZQN"  # 皇后鎮
-DEPART_START = dt.date.fromisoformat(os.getenv("DEPART_START", "2027-02-20"))
+DEPART_START = dt.date.fromisoformat(os.getenv("DEPART_START", "2027-01-01"))
 DEPART_END = dt.date.fromisoformat(os.getenv("DEPART_END", "2027-03-31"))
 # 每段最多搭幾班飛機：2 = 最多轉機一次（例：台北→奧克蘭→皇后鎮）
 MAX_FLIGHTS = int(os.getenv("MAX_FLIGHTS") or "2")
@@ -32,7 +32,7 @@ CABIN = os.getenv("CABIN", "economy")  # economy / premiumeconomy / business
 BOOKING_HOST = os.getenv("BOOKING_HOST", "https://flightbookings.airnewzealand.com.tw")
 # 每次只查 1/ROTATE 的出發日並輪替（省 Actions 分鐘數用）；1 = 每次全查（約 280 組）
 ROTATE = int(os.getenv("ROTATE", "1"))
-WORKERS = int(os.getenv("WORKERS", "4"))  # 同時查幾組
+WORKERS = int(os.getenv("WORKERS", "6"))  # 同時查幾組
 LIMIT = int(os.getenv("LIMIT") or "0")  # 只查前幾組（診斷用），0 = 不限
 
 RESULTS = Path("results")
