@@ -5,8 +5,9 @@ on:
     # 台灣時間 17:15 開始（GitHub 排程常晚 10～20 分鐘，查詢約 15 分鐘），
     # 信件約在 18:00 寄達。cron 用 UTC：台灣 = UTC+8
     - cron: "15 9 * * *"
-    # 備援：GitHub 忙碌時可能整個略過排程（2026-10-04 早上就發生過），
-    # 30 分鐘後再排一次；若主排程已經跑過或正在跑，備援會直接跳過，不會重複寄信
+    # 備援：GitHub 忙碌時可能整個略過或延後好幾小時才跑排程（2026-10-04 都發生過），
+    # 30 分鐘後再排一次。不論主排程、備援或手動執行，8 小時內已經查過（或正在查）就直接跳過，
+    # 避免 GitHub 很晚才補跑時重複寄信
     - cron: "45 9 * * *"
   workflow_dispatch:
     inputs:
@@ -31,17 +32,20 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:
-      - name: Skip if another scheduled run already covers this slot
+      - name: Skip if a report already went out in the last 8 hours
         id: guard
         if: github.event_name == 'schedule'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          since=$(date -u -d '-100 min' +%Y-%m-%dT%H:%M:%SZ)
-          n=$(gh api "repos/${{ github.repository }}/actions/workflows/daily.yml/runs?event=schedule&created=>$since" \
+          since=$(date -u -d '-8 hours' +%Y-%m-%dT%H:%M:%SZ)
+          # 只算真的有查票的執行：成功且跑超過 5 分鐘（排除被跳過的備援、只寄測試信的執行），或正在跑
+          n=$(gh api "repos/${{ github.repository }}/actions/workflows/daily.yml/runs?created=>$since" \
             --jq "[.workflow_runs[] | select(.id != ${{ github.run_id }} and .id < ${{ github.run_id }}
-                   and (.conclusion == \"success\" or .status == \"in_progress\" or .status == \"queued\"))] | length")
-          echo "earlier runs in this slot: $n"
+                   and (.status == \"in_progress\" or .status == \"queued\"
+                        or (.conclusion == \"success\"
+                            and ((.updated_at | fromdate) - (.run_started_at | fromdate)) > 300)))] | length")
+          echo "reports in the last 8 hours: $n"
           if [ "$n" -gt 0 ]; then echo "skip=true" >> "$GITHUB_OUTPUT"; fi
       - if: steps.guard.outputs.skip != 'true'
         uses: actions/checkout@v4
