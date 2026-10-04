@@ -12,7 +12,9 @@ import datetime as dt
 import json
 import os
 import re
+import smtplib
 import sys
+from email.mime.text import MIMEText
 from pathlib import Path
 from urllib.parse import urlencode
 from zoneinfo import ZoneInfo
@@ -20,7 +22,6 @@ from zoneinfo import ZoneInfo
 import requests
 from playwright.async_api import async_playwright
 
-from check_fares import notify_email, send_email_safely
 
 ORIGIN = os.getenv("ORIGIN", "TPE")
 FINLAND = os.getenv("FINLAND_AIRPORT", "HEL")  # 赫爾辛基
@@ -325,6 +326,25 @@ def save_history(history: dict, number: int | None) -> None:
 
 
 # ---------- 報告 ----------
+
+def notify_email(subject: str, body: str) -> None:
+    user, pw = os.getenv("SMTP_USER"), os.getenv("SMTP_PASSWORD")
+    to = os.getenv("NOTIFY_EMAIL") or user  # 沒設定收件人就寄給自己
+    if not (user and pw and to):
+        return
+    msg = MIMEText(body, "plain", "utf-8")
+    msg["Subject"], msg["From"], msg["To"] = subject, user, to
+    with smtplib.SMTP_SSL("smtp.gmail.com", 465) as s:
+        s.login(user, pw)
+        s.send_message(msg)
+
+
+def send_email_safely(subject: str, body: str) -> None:
+    try:
+        notify_email(subject, body)
+    except Exception as e:
+        print(f"email failed: {e}", file=sys.stderr)
+
 
 def route_name(r: dict) -> str:
     names = {FINLAND: "芬蘭", NORWAY: "挪威"}

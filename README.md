@@ -98,7 +98,7 @@ repo 頁面 → **Actions** → 左側 **Daily Air NZ fare check** → 右側 **
 
 每天的最低價記錄在 repo 中標籤為 `nordic-history` 的 issue（自動更新，請勿關閉）。
 
-Gmail 設定與紐航共用（`SMTP_USER`、`SMTP_PASSWORD`、`NOTIFY_EMAIL`），不用另外設定。
+和紐航是兩個獨立的程式與排程（`check_nordic.py`／`nordic.yml`），互不影響；只共用 Gmail 設定（`SMTP_USER`、`SMTP_PASSWORD`、`NOTIFY_EMAIL`），不用另外設定。
 手動測試：Actions → **Daily Finland/Norway fare check** → **Run workflow**（`limit` 填 `6` 可快速試跑；勾選「只寄一封測試信」可測 Gmail）。
 
 > Google Flights 約只開放 11 個月內的航班；8 月底回程的日期若還沒開放，會先算在「沒有符合條件的班次」，開放後自動納入。
