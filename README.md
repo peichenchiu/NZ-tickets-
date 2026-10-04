@@ -87,11 +87,12 @@ repo 頁面 → **Actions** → 左側 **Daily Air NZ fare check** → 右側 **
 - 乘客：2 位成人 + 1 位兒童（2～11 歲），經濟艙，每段最多轉機 1 次
 - **只看傳統航空**：去程、回程都排除廉價航空（Norwegian、Scoot、AirAsia、Jetstar、VietJet 等）
 - 每組日期先選去程最便宜的傳統航空班次，再選回程最便宜的，讀取全家含稅總價
+- 共 288 組（24 個出發日 × 6 種天數 × 2 種走法），每次約 25 分鐘；排程 11:15 開始，11:45 有備援
 
 信件內容：今日最便宜 10 組、兩種走法各自最低、每個出發日的最低價、與昨天／歷史最低比較。
 出現以下情況時，主旨會加上「🔥特別推薦！」，信件開頭列出那一組：
 
-- 全家總價低於 NT$95,000（`THRESHOLD_TWD`），或
+- 全家總價低於 NT$85,000（`THRESHOLD_TWD`），或
 - 比之前查到的歷史最低價還便宜
 
 每天的最低價記錄在 repo 中標籤為 `nordic-history` 的 issue（自動更新，請勿關閉）。
@@ -109,5 +110,5 @@ Gmail 設定與紐航共用（`SMTP_USER`、`SMTP_PASSWORD`、`NOTIFY_EMAIL`）�
 | `DEPART_START` / `DEPART_END` | 2027-07-18 / 2027-08-10 | 出發日範圍 |
 | `TRIP_DAYS_MIN` / `TRIP_DAYS_MAX` | 16 / 21 | 整趟天數 |
 | `MAX_STOPS` | 1 | 每段最多轉機次數 |
-| `THRESHOLD_TWD` | 95000 | 全家總價低於此就特別推薦 |
-| `WORKERS` | 4 | 同時查幾組 |
+| `THRESHOLD_TWD` | 85000 | 全家總價低於此就特別推薦 |
+| `WORKERS` | 6 | 同時查幾組 |

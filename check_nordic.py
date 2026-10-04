@@ -30,10 +30,10 @@ DEPART_END = dt.date.fromisoformat(os.getenv("DEPART_END") or "2027-08-10")
 TRIP_DAYS_MIN = int(os.getenv("TRIP_DAYS_MIN") or "16")
 TRIP_DAYS_MAX = int(os.getenv("TRIP_DAYS_MAX") or "21")
 MAX_STOPS = int(os.getenv("MAX_STOPS") or "1")  # 每段最多轉機幾次
-THRESHOLD_TWD = int(os.getenv("THRESHOLD_TWD") or "95000")  # 全家總價低於此就特別推薦
+THRESHOLD_TWD = int(os.getenv("THRESHOLD_TWD") or "85000")  # 全家總價低於此就特別推薦
 ADULTS = int(os.getenv("ADULTS") or "2")
 CHILDREN = int(os.getenv("CHILDREN") or "1")  # 2～11 歲
-WORKERS = int(os.getenv("WORKERS") or "4")
+WORKERS = int(os.getenv("WORKERS") or "6")
 LIMIT = int(os.getenv("LIMIT") or "0")  # 只查前幾組（診斷用），0 = 不限
 
 RESULTS = Path("results")
@@ -239,7 +239,11 @@ async def search_all(jobs: list[tuple[str, dt.date, dt.date]]) -> list[dict]:
         )
         page = await ctx.new_page()
         while not queue.empty():
-            r = await check_one(page, *queue.get_nowait())
+            job = queue.get_nowait()
+            r = await check_one(page, *job)
+            if r["status"] == "error":  # 偶爾點選後頁面沒反應，重查一次通常就好
+                await asyncio.sleep(3)
+                r = await check_one(page, *job)
             print(json.dumps(r, ensure_ascii=False), flush=True)
             results.append(r)
             await asyncio.sleep(2)  # 放慢速度，避免被當成機器人
