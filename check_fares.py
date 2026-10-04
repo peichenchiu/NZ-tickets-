@@ -311,7 +311,7 @@ def main() -> int:
                f"低於 NT${THRESHOLD_TWD:,} 的有 {len(cheap)} 組。")
     print(summary)
     now = dt.datetime.now(ZoneInfo("Asia/Taipei"))  # runner 是 UTC，日期要用台灣時間
-    today = now.strftime("%m/%d ") + ("早報" if now.hour < 12 else "晚報")
+    today = now.strftime("%m/%d")
     header = (f"紐西蘭航空 {ORIGIN}⇄{DEST} {TRIP_DAYS_MIN}～{TRIP_DAYS_MAX} 天來回"
               f"（{CABIN}，{ADULTS} 成人 + {CHILDREN} 兒童，每段最多轉機 {MAX_FLIGHTS - 1} 次）")
     note = "價格為去程、回程各選最便宜經濟艙後，訂票頁顯示的全家含稅總價（Total cost），實際以訂票頁為準。"
