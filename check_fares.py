@@ -295,7 +295,7 @@ def main() -> int:
             return 1
         notify_email("✈️ 紐航機票監控：測試信",
                      "這是測試信。收到代表 Gmail 通知設定成功，"
-                     "之後每天 06:00、18:00 左右會寄最低價報告給你。")
+                     "之後每天 18:00 左右會寄最低價報告給你。")
         print("測試信已寄出")
         return 0
     results = run_search()
