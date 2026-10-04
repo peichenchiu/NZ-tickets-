@@ -30,6 +30,7 @@ DEPART_END = dt.date.fromisoformat(os.getenv("DEPART_END") or "2027-08-10")
 TRIP_DAYS_MIN = int(os.getenv("TRIP_DAYS_MIN") or "16")
 TRIP_DAYS_MAX = int(os.getenv("TRIP_DAYS_MAX") or "21")
 MAX_STOPS = int(os.getenv("MAX_STOPS") or "1")  # 每段最多轉機幾次
+CHECKED_BAGS = int(os.getenv("CHECKED_BAGS") or "1")  # 每人託運行李件數，價格會含行李費
 THRESHOLD_TWD = int(os.getenv("THRESHOLD_TWD") or "85000")  # 全家總價低於此就特別推薦
 ADULTS = int(os.getenv("ADULTS") or "2")
 CHILDREN = int(os.getenv("CHILDREN") or "1")  # 2～11 歲
@@ -166,6 +167,28 @@ async def accept_consent(page) -> None:
             await page.wait_for_load_state("domcontentloaded")
 
 
+async def apply_bags(page) -> None:
+    """在 Google Flights 的「Bags」篩選加上託運行李，讓價格含行李費（不含的票價會被排除或加價）。"""
+    if not CHECKED_BAGS:
+        return
+    await page.wait_for_selector(OPTIONS_SEL, timeout=45_000)
+    btn = page.get_by_role("button", name=re.compile(r"^Bags", re.I))
+    try:
+        await btn.first.click(timeout=15_000)
+        add = page.get_by_role("button", name=re.compile(r"(add|increase|more).*checked bag", re.I))
+        for _ in range(CHECKED_BAGS):
+            await add.first.click(timeout=10_000)
+            await page.wait_for_timeout(500)
+    except Exception:
+        if LIMIT:  # 診斷用：列出頁面上跟行李有關的按鈕
+            names = await page.locator("button, [role=button]").evaluate_all(
+                "els => els.map(e => e.getAttribute('aria-label') || e.innerText).filter(t => /bag/i.test(t || ''))")
+            print("行李按鈕：", names[:20], flush=True)
+        raise RuntimeError("找不到託運行李篩選")
+    await page.keyboard.press("Escape")
+    await page.wait_for_timeout(4000)  # 等價格依行李篩選重新整理
+
+
 async def check_one(page, route: str, depart: dt.date, ret: dt.date) -> dict:
     first, last = (FINLAND, NORWAY) if route == "A" else (NORWAY, FINLAND)
     url = search_url([(depart, ORIGIN, first), (ret, last, ORIGIN)])
@@ -175,6 +198,7 @@ async def check_one(page, route: str, depart: dt.date, ret: dt.date) -> dict:
     try:
         await page.goto(url, wait_until="domcontentloaded", timeout=90_000)
         await accept_consent(page)
+        await apply_bags(page)
         out_opts = await list_options(page)
         out = pick(out_opts)
         if not out:
@@ -356,7 +380,8 @@ def main() -> int:
     today = now.strftime("%m/%d")
     header = (f"台北 {ORIGIN} ⇄ 芬蘭 {FINLAND}／挪威 {NORWAY}（一進一出，多個城市行程）\n"
               f"出發 {DEPART_START}～{DEPART_END}，旅程 {TRIP_DAYS_MIN}～{TRIP_DAYS_MAX} 天，"
-              f"經濟艙，{ADULTS} 成人 + {CHILDREN} 兒童，只看傳統航空，每段最多轉機 {MAX_STOPS} 次")
+              f"經濟艙，{ADULTS} 成人 + {CHILDREN} 兒童，只看傳統航空，每段最多轉機 {MAX_STOPS} 次，"
+              f"含每人託運行李 {CHECKED_BAGS} 件")
 
     if not ok:
         print("沒有抓到任何價格，請查看 artifact 中的 debug 截圖。", file=sys.stderr)
@@ -404,7 +429,7 @@ def main() -> int:
             + "\n【今日最便宜 10 組】\n" + "\n".join(format_line(r) for r in ok[:10])
             + "\n\n【兩種走法各自最低】\n" + "\n".join(format_line(r) for r in by_route.values())
             + "\n\n【每個出發日的最低價】\n" + "\n".join(table)
-            + "\n\n價格為 Google Flights 顯示的全家（含兒童）含稅總價，去程、回程各選最便宜的傳統航空班次；"
+            + "\n\n價格為 Google Flights 顯示的全家（含兒童）含稅、含託運行李總價，去程、回程各選最便宜的傳統航空班次；"
               "實際價格以航空公司訂票頁為準。")
     flag = "🔥特別推薦！" if reasons else ""
     send_email_safely(f"✈️ 芬蘭挪威 {today}：全家最低 NT${best:,} {flag}".strip(), body)
