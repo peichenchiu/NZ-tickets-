@@ -123,15 +123,33 @@ async def list_options(page) -> list[dict]:
             await page.wait_for_timeout(2000)
         except Exception:
             pass
-    labels = await page.locator(OPTIONS_SEL).evaluate_all(
-        "els => els.map(e => e.getAttribute('aria-label'))")
+    # 標上編號以便之後點選；同一班次可能有隱藏的重複元素，只留看得到的
+    labels = await page.locator(OPTIONS_SEL).evaluate_all("""els => els.map((e, i) => {
+        e.setAttribute('data-gf-idx', i);
+        return e.offsetParent === null ? null : e.getAttribute('aria-label');
+    })""")
     opts = []
     for i, label in enumerate(labels):
         o = parse_option(label or "")
         if o:
             o["idx"] = i
+            o["label"] = label
             opts.append(o)
     return opts
+
+
+async def select(page, opt: dict, before: list[dict]) -> None:
+    """點選班次，等頁面換成下一段的列表。"""
+    # 用 JS 點，避免浮動的頁首／提示框擋住造成 Playwright 判定無法點擊
+    await page.evaluate("i => document.querySelector(`[data-gf-idx=\"${i}\"]`).click()", opt["idx"])
+    old = {o["label"] for o in before}
+    for _ in range(40):
+        await page.wait_for_timeout(500)
+        now = await page.locator(OPTIONS_SEL).evaluate_all(
+            "els => els.filter(e => e.offsetParent !== null).map(e => e.getAttribute('aria-label'))")
+        if now and not set(now) & old:
+            return
+    raise RuntimeError("點選去程後回程列表沒有出現")
 
 
 def pick(opts: list[dict]) -> dict | None:
@@ -161,11 +179,13 @@ async def check_one(page, route: str, depart: dt.date, ret: dt.date) -> dict:
         out = pick(out_opts)
         if not out:
             return await fail(page, result, tag, out_opts, "去程")
-        await page.locator(OPTIONS_SEL).nth(out["idx"]).click()
-        # 點選去程後，頁面換成回程列表；等舊的列表消失再讀
-        await page.wait_for_timeout(4000)
+        if LIMIT:
+            print("去程範例：", *[o["label"][:200] for o in out_opts[:3]], sep="\n  ", flush=True)
+        await select(page, out, out_opts)
         ret_opts = await list_options(page)
         back = pick(ret_opts)
+        if LIMIT:
+            print("回程範例：", *[o["label"][:200] for o in ret_opts[:3]], sep="\n  ", flush=True)
         if not back:
             return await fail(page, result, tag, ret_opts, "回程")
         result.update(status="ok", min_price=back["price"],
