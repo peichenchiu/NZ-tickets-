@@ -1,0 +1,49 @@
+REQ GET https://www.hermitage.co.nz/stay/hermitage-hotel
+RES 307 https://www.hermitage.co.nz/stay/hermitage-hotel
+REQ GET https://www.hermitage.co.nz/stay/hermitage-hotel
+RES 403 https://www.hermitage.co.nz/stay/hermitage-hotel
+NAV https://www.hermitage.co.nz/stay/hermitage-hotel
+NAV https://www.hermitage.co.nz/stay/hermitage-hotel?__cf_chl_rt_tk=nRRFXSm5OEbVxUueyvF9Un0bJPx5UzW4wkytkJ3QoAI-1792597917-1.0.1.1-EgYu661h3vwXbS7fJUrfVNGlD.29fHx5rXOMHpqkaB4
+REQ GET https://www.hermitage.co.nz/cdn-cgi/challenge-platform/h/b/orchestrate/chl_page/v1?ray=a4e16d394a89c9af
+RES 200 https://www.hermitage.co.nz/cdn-cgi/challenge-platform/h/b/orchestrate/chl_page/v1?ray=a4e16d394a89c9af
+NAV about:blank
+NAV https://www.hermitage.co.nz/stay/hermitage-hotel
+REQ GET https://challenges.cloudflare.com/turnstile/v0/b/d2d3316b729e/api.js?onload=DraY9&render=explicit
+NAV about:blank
+REQ GET blob:https://www.hermitage.co.nz/40ee5f53-f7eb-43ae-94d9-f7e62f133baa
+RES 200 https://challenges.cloudflare.com/turnstile/v0/b/d2d3316b729e/api.js?onload=DraY9&render=explicit
+RES 200 blob:https://www.hermitage.co.nz/40ee5f53-f7eb-43ae-94d9-f7e62f133baa
+REQ POST https://www.hermitage.co.nz/cdn-cgi/challenge-platform/h/b/fo/3460906100:1792591221:hH631C8UbfdwZUzoh0mVm13cUJ6xR_RdguKwbcGW_LU/a4e16d394a89c9af/R6Bsz_CnIxHmHdOpMQhqbMxSzDDKlsAxxFSwA2pU5qA-1792597917-1.2.1.1-Y7AG_SONgpdT6fpxr56sImjq5VHwZEepg2to8ypgoEfgJsVGtavzntors5XnYpYa
+RES 200 https://www.hermitage.co.nz/cdn-cgi/challenge-platform/h/b/fo/3460906100:1792591221:hH631C8UbfdwZUzoh0mVm13cUJ6xR_RdguKwbcGW_LU/a4e16d394a89c9af/R6Bsz_CnIxHmHdOpMQhqbMxSzDDKlsAxxFSwA2pU5qA-1792597917-1.2.1.1-Y7AG_SONgpdT6fpxr56sImjq5VHwZEepg2to8ypgoEfgJsVGtavzntors5XnYpYa
+REQ GET https://challenges.cloudflare.com/cdn-cgi/challenge-platform/h/b/turnstile/f/av0/rch/1ffzs/0x4AAAAAAADnPIDROrmt1Wwj/light/fbE/new/normal?lang=auto
+REQ GET blob:https://www.hermitage.co.nz/58acbf6b-6cee-408c-b0ec-35140bf576df
+RES 200 blob:https://www.hermitage.co.nz/58acbf6b-6cee-408c-b0ec-35140bf576df
+RES 200 https://challenges.cloudflare.com/cdn-cgi/challenge-platform/h/b/turnstile/f/av0/rch/1ffzs/0x4AAAAAAADnPIDROrmt1Wwj/light/fbE/new/normal?lang=auto
+NAV https://challenges.cloudflare.com/cdn-cgi/challenge-platform/h/b/turnstile/f/av0/rch/1ffzs/0x4AAAAAAADnPIDROrmt1Wwj/light/fbE/new/normal?lang=auto
+NAV about:blank
+NAV about:blank
+REQ GET blob:https://challenges.cloudflare.com/27d035ab-a2d4-41cb-b923-b88d8abeae51
+RES 200 blob:https://challenges.cloudflare.com/27d035ab-a2d4-41cb-b923-b88d8abeae51
+REQ POST https://challenges.cloudflare.com/cdn-cgi/challenge-platform/h/b/fo/528418225:1792591227:E8s1nKVoIdvh2POND0_-8NziHfpItD962fqOM5MEgus/a4e16d3c18b5c6f7/wei.7isVaPiQzemHKQgcaRTo6BC26zeP2dRESHpG3Jk-1792597918-1.2.1.1-ldfrbS4cdgxGZk2DMb.WkaJSM4_tIKYMXWLo4Nwax40Lj8ZQRKdraMwn5giFrlOY
+RES 200 https://challenges.cloudflare.com/cdn-cgi/challenge-platform/h/b/fo/528418225:1792591227:E8s1nKVoIdvh2POND0_-8NziHfpItD962fqOM5MEgus/a4e16d3c18b5c6f7/wei.7isVaPiQzemHKQgcaRTo6BC26zeP2dRESHpG3Jk-1792597918-1.2.1.1-ldfrbS4cdgxGZk2DMb.WkaJSM4_tIKYMXWLo4Nwax40Lj8ZQRKdraMwn5giFrlOY
+NAV about:blank
+REQ GET blob:https://challenges.cloudflare.com/c426666c-d003-449d-a77f-c8a2124fb67b
+RES 200 blob:https://challenges.cloudflare.com/c426666c-d003-449d-a77f-c8a2124fb67b
+REQ GET https://challenges.cloudflare.com/cdn-cgi/challenge-platform/h/b/pat/a4e16d3c18b5c6f7/1792597918370/c0496b1d08641c2765d011539539acb523dd6f6465b6519a1f187ff5b80f8666/Oq6voVjcgMiftUeMpMaotsj3k66tQhyJTRHdT_a.2jw-1792597918-1.3.1.1-PXtzHgzEuEx.CWNJQva_ri2sNuoHp3oWX92Lhx5aVh.Af8bdrehva8k..RUSmzrXhw.hRndsXMiSelr1T1XDkScxCT2AZ5Vc61_wxy_ooTqeAqVzFyyWbTpMV9o8tnAX8Uu1Sx4.bvF4B.dlL9CoVxSpQi1D_VBecpC.vsUcvZw167IZ8ZWrw8GJgWf9B8NMNSekA93XH28_BMOsLkJGCNrIqK4Lirhgt5DDiDlHoV.Beu30rxWslh5WguCm2n9_O9kzUvni14b4ke4sL8Duv.LLb1Ylx5TEkhln7ZIru8SrE.UwRFC9h_NckynDlxrzGnSGonqZkGZo8je8XknWf5d5PgbGtgbAEUTL88pp0PCrw0Lf9s1Bm1GKnA_4Ol2HaZLXjkgJQCveRoFBY9sr3GXBlmVmk6AqWjhIoHe6yDP5lEbkJ_f7UFCH.4BGFaXAcCX4PM4ju9.74cKpOB1ojnC5X7FjzR8emp4dNa_tO7APZX2bb0MMsBNFynjlYpxxU9aPV5S6iYRNKdRQKuKswuTD5NEgOvB1oniyW5sTq90GC08R10_iIg9MMIjjf.PFSUmQ2BANN5XHUVHTdCsHiOebx3RBpEvjYvEKE0oQ612UTmut9Vy6qGorg2_OM_JOD3m7f2QsKSIHKh4BLvF2LMvBKl_bJFRmlZFzmEKciegY0h_.CLR0oXouZr9R2Xeokhn9c.9LP1GVUxuSavVa5OfuJBzFJXhrY7U92BNvJmIVEw.laKVnaH_aI54OlQgR4DAi7XHlWjRso92gDEWQG5e3RwX_Q9J9vgjnkdcUG3TYewS9uIDENT1jC5GrUIrU
+REQ GET https://brunhild.challenges.cloudflare.com/cdn-cgi/challenge-platform/h/b/i/a4e16d3c18b5c6f7/wei.7isVaPiQzemHKQgcaRTo6BC26zeP2dRESHpG3Jk-1792597918-1.2.1.1-ldfrbS4cdgxGZk2DMb.WkaJSM4_tIKYMXWLo4Nwax40Lj8ZQRKdraMwn5giFrlOY
+RES 401 https://challenges.cloudflare.com/cdn-cgi/challenge-platform/h/b/pat/a4e16d3c18b5c6f7/1792597918370/c0496b1d08641c2765d011539539acb523dd6f6465b6519a1f187ff5b80f8666/Oq6voVjcgMiftUeMpMaotsj3k66tQhyJTRHdT_a.2jw-1792597918-1.3.1.1-PXtzHgzEuEx.CWNJQva_ri2sNuoHp3oWX92Lhx5aVh.Af8bdrehva8k..RUSmzrXhw.hRndsXMiSelr1T1XDkScxCT2AZ5Vc61_wxy_ooTqeAqVzFyyWbTpMV9o8tnAX8Uu1Sx4.bvF4B.dlL9CoVxSpQi1D_VBecpC.vsUcvZw167IZ8ZWrw8GJgWf9B8NMNSekA93XH28_BMOsLkJGCNrIqK4Lirhgt5DDiDlHoV.Beu30rxWslh5WguCm2n9_O9kzUvni14b4ke4sL8Duv.LLb1Ylx5TEkhln7ZIru8SrE.UwRFC9h_NckynDlxrzGnSGonqZkGZo8je8XknWf5d5PgbGtgbAEUTL88pp0PCrw0Lf9s1Bm1GKnA_4Ol2HaZLXjkgJQCveRoFBY9sr3GXBlmVmk6AqWjhIoHe6yDP5lEbkJ_f7UFCH.4BGFaXAcCX4PM4ju9.74cKpOB1ojnC5X7FjzR8emp4dNa_tO7APZX2bb0MMsBNFynjlYpxxU9aPV5S6iYRNKdRQKuKswuTD5NEgOvB1oniyW5sTq90GC08R10_iIg9MMIjjf.PFSUmQ2BANN5XHUVHTdCsHiOebx3RBpEvjYvEKE0oQ612UTmut9Vy6qGorg2_OM_JOD3m7f2QsKSIHKh4BLvF2LMvBKl_bJFRmlZFzmEKciegY0h_.CLR0oXouZr9R2Xeokhn9c.9LP1GVUxuSavVa5OfuJBzFJXhrY7U92BNvJmIVEw.laKVnaH_aI54OlQgR4DAi7XHlWjRso92gDEWQG5e3RwX_Q9J9vgjnkdcUG3TYewS9uIDENT1jC5GrUIrU
+NAV about:blank
+NAV about:blank
+REQ GET blob:https://challenges.cloudflare.com/c426666c-d003-449d-a77f-c8a2124fb67b
+RES 200 blob:https://challenges.cloudflare.com/c426666c-d003-449d-a77f-c8a2124fb67b
+REQ GET https://challenges.cloudflare.com/cdn-cgi/challenge-platform/h/b/ci/a4e16d3c18b5c6f7/1792597918371/H02RLHgx8prvVoP_VqSb0Py2Yvq8wiPXU1C5M22ifJ0-1792597918-1.3.1.1-ycwjkvGYViTbxQxFKFaGC41CCOkWLuyhq_eWeyBsBsJZ_HLxXeegGgmnmyFKRrom_eh0qUiC8PPTbLInDEfntN6h2sPWOHN.IJ12RQjXCrjo1oE3ci7tBtTgQ8cAfTS.jwDqQP0ns_etncYknyoMVt1QIjO9n2.7Nu_CFgCn9kqQUtTR.ZB2FlF93D3unKWC2rR9MB69tYP8Arl3webSrQr3jrvqRueGHuO_.ytB5okPBUvaRzEJxXIxETFgjtlkwcK2EmvhuIg5pnumSrjzPjLRYUUvZFWjOkXeTEcvVi4QF5V8PwmajlJVhjnp2zlrjNFw6uSkTDzCJ1f1jxpn0DuA8S6ehPcMatu4PEBcFvcjJGeY9U9dBOUOl4w0io80ANgMBCYGfZhQ9xep2h0_UMdCTOjS8Bi6vQrp2VOFSp8_UA0vUfbwgGC_B2mEmzWs.V56rG.BjgDxz_fzfAqFOTsTXbRTqe.DrWmZTdNnuZAREuRNUw.dq0zEeSNRT3crLo4RVssHhqRQ.cayqGWlwNrYVzWVUIvejFMWhgUXbrp3LqqzWdBV5mWsnAfLME6smL7ZIWKggUo8bx_Pu5i6g7en1f1Xu6jyooXz2vdy.2MB338fqMNUUN_wPeDlqrSXcCJg_Yt55FWELf4m0c0K.hd20gR35oQ0NQzrteHg7RqCNPT02U0.1uvztHwdU3I9VoIgW3ayBkVdE1rLGnGD6.ev7FUiD0LBwImGfhQxzmg
+RES 200 https://challenges.cloudflare.com/cdn-cgi/challenge-platform/h/b/ci/a4e16d3c18b5c6f7/1792597918371/H02RLHgx8prvVoP_VqSb0Py2Yvq8wiPXU1C5M22ifJ0-1792597918-1.3.1.1-ycwjkvGYViTbxQxFKFaGC41CCOkWLuyhq_eWeyBsBsJZ_HLxXeegGgmnmyFKRrom_eh0qUiC8PPTbLInDEfntN6h2sPWOHN.IJ12RQjXCrjo1oE3ci7tBtTgQ8cAfTS.jwDqQP0ns_etncYknyoMVt1QIjO9n2.7Nu_CFgCn9kqQUtTR.ZB2FlF93D3unKWC2rR9MB69tYP8Arl3webSrQr3jrvqRueGHuO_.ytB5okPBUvaRzEJxXIxETFgjtlkwcK2EmvhuIg5pnumSrjzPjLRYUUvZFWjOkXeTEcvVi4QF5V8PwmajlJVhjnp2zlrjNFw6uSkTDzCJ1f1jxpn0DuA8S6ehPcMatu4PEBcFvcjJGeY9U9dBOUOl4w0io80ANgMBCYGfZhQ9xep2h0_UMdCTOjS8Bi6vQrp2VOFSp8_UA0vUfbwgGC_B2mEmzWs.V56rG.BjgDxz_fzfAqFOTsTXbRTqe.DrWmZTdNnuZAREuRNUw.dq0zEeSNRT3crLo4RVssHhqRQ.cayqGWlwNrYVzWVUIvejFMWhgUXbrp3LqqzWdBV5mWsnAfLME6smL7ZIWKggUo8bx_Pu5i6g7en1f1Xu6jyooXz2vdy.2MB338fqMNUUN_wPeDlqrSXcCJg_Yt55FWELf4m0c0K.hd20gR35oQ0NQzrteHg7RqCNPT02U0.1uvztHwdU3I9VoIgW3ayBkVdE1rLGnGD6.ev7FUiD0LBwImGfhQxzmg
+NAV about:blank
+REQ GET blob:https://challenges.cloudflare.com/c426666c-d003-449d-a77f-c8a2124fb67b
+RES 200 blob:https://challenges.cloudflare.com/c426666c-d003-449d-a77f-c8a2124fb67b
+NAV about:blank
+NAV about:srcdoc
+REQ POST https://challenges.cloudflare.com/cdn-cgi/challenge-platform/h/b/fo/528418225:1792591227:E8s1nKVoIdvh2POND0_-8NziHfpItD962fqOM5MEgus/a4e16d3c18b5c6f7/wei.7isVaPiQzemHKQgcaRTo6BC26zeP2dRESHpG3Jk-1792597918-1.2.1.1-ldfrbS4cdgxGZk2DMb.WkaJSM4_tIKYMXWLo4Nwax40Lj8ZQRKdraMwn5giFrlOY
+RES 200 https://challenges.cloudflare.com/cdn-cgi/challenge-platform/h/b/fo/528418225:1792591227:E8s1nKVoIdvh2POND0_-8NziHfpItD962fqOM5MEgus/a4e16d3c18b5c6f7/wei.7isVaPiQzemHKQgcaRTo6BC26zeP2dRESHpG3Jk-1792597918-1.2.1.1-ldfrbS4cdgxGZk2DMb.WkaJSM4_tIKYMXWLo4Nwax40Lj8ZQRKdraMwn5giFrlOY
+REQ GET blob:https://challenges.cloudflare.com/a9194eb8-e694-4222-bf60-9b14bd7e18e3
+RES 200 blob:https://challenges.cloudflare.com/a9194eb8-e694-4222-bf60-9b14bd7e18e3
