@@ -1,0 +1,43 @@
+name: Hermitage Mt Cook availability
+
+on:
+  # 正式排程在確認查房流程可行後才加入（每天一次）
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "diag=診斷（存畫面與網路紀錄）、check=正式查房"
+        required: false
+        default: "diag"
+      test_email:
+        description: "只寄一封測試信（不查房）"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt && python -m playwright install --with-deps chromium
+      - name: Check Hermitage availability
+        env:
+          MODE: ${{ inputs.mode }}
+          TEST_EMAIL: ${{ inputs.test_email }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          NOTIFY_EMAIL: ${{ secrets.NOTIFY_EMAIL }}
+        run: python check_hermitage.py
+      - name: Upload debug
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hermitage-debug
+          path: debug/
+          retention-days: 14
