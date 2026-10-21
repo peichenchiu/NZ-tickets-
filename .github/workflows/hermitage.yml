@@ -14,7 +14,7 @@ on:
         default: false
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   check:
@@ -34,6 +34,20 @@ jobs:
           SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
           NOTIFY_EMAIL: ${{ secrets.NOTIFY_EMAIL }}
         run: python check_hermitage.py
+      - name: Publish debug files to branch hermitage-debug
+        if: always()
+        run: |
+          # 診斷結果（公開的飯店網頁畫面與網路紀錄，不含任何密碼）存到獨立分支方便查看
+          [ -d debug ] || exit 0
+          cp -r debug /tmp/dbg
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git checkout --orphan hermitage-debug
+          git rm -rf . > /dev/null 2>&1 || true
+          cp -r /tmp/dbg/. .
+          git add -A
+          git commit -m "hermitage debug ${GITHUB_RUN_ID}" || exit 0
+          git push -f origin hermitage-debug
       - name: Upload debug
         if: always()
         uses: actions/upload-artifact@v4
